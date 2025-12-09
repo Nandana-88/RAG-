@@ -1,0 +1,10 @@
+langchain==0.3.15
+langchain-community==0.3.15
+langchain-google-genai==2.0.8
+langchain-huggingface
+langchain-chroma
+sentence-transformers
+chromadb
+pypdf
+python-dotenv
+streamlit
