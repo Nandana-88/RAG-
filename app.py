@@ -85,13 +85,17 @@ st.markdown("""
 # Cache the embeddings model (loads only once)
 @st.cache_resource(show_spinner=False)
 def get_embeddings():
-    from src.embeddings.hugging_face import get_embeddings as get_emb
-    return get_emb(EMBEDDING_MODEL)
+    try:
+        from src.embeddings.hugging_face import get_embeddings as get_emb 
+        return get_emb(EMBEDDING_MODEL)
+    except Exception as e:
+        st.error(f"Failed to load embeddings: {e}")
+        raise
 
 # Cache the vector database connection (loads only once)
 @st.cache_resource(show_spinner=False)
 def get_vector_db():
-    from langchain_community.vectorstores import Chroma
+    from langchain_chroma import Chroma
     embeddings = get_embeddings()
     return Chroma(
         persist_directory=PERSIST_DIR, 

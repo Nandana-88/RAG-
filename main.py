@@ -27,20 +27,24 @@ def ingest(data_path):
     """Ingest documents from the specified path into ChromaDB."""
     ensure_dir(PERSIST_DIR)
 
-    print(f"Loading documents from: {data_path}")
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    logger.info(f"Loading documents from: {data_path}")
+
     docs = load_documents(data_path)
     if not docs:
-        print("❌ No documents found to ingest.")
+        logger.error("❌ No documents found to ingest.")
         return
 
-    print(f"✅ Loaded {len(docs)} documents")
+    logger.info(f"✅ Loaded {len(docs)} documents")
     chunks = split_documents(docs, CHUNK_SIZE, CHUNK_OVERLAP)
-    print(f"✅ Split into {len(chunks)} chunks")
+    logger.info(f"✅ Split into {len(chunks)} chunks")
     
     embeddings = get_embeddings(EMBEDDING_MODEL)
     store_to_chroma(chunks, PERSIST_DIR, embeddings)
 
-    print(f"✅ Successfully ingested {len(docs)} documents into ChromaDB!")
+    logger.info(f"✅ Successfully ingested {len(docs)} documents into ChromaDB!")
 
 
 def chat(question, context=None, context_file=None):
@@ -55,12 +59,12 @@ def chat(question, context=None, context_file=None):
             with open(context_file, "r", encoding="utf-8") as f:
                 context = f.read()
         except Exception as e:
-            print("Failed to read context file:", e)
+            logger.error("Failed to read context file:", e)
             return
 
     # If no manual context provided, try to retrieve from Vector DB
     if not context:
-        print("Retrieving context from vector store...")
+        logger.info("Retrieving context from vector store...")
         try:
             embeddings = get_embeddings(EMBEDDING_MODEL)
             # Explicitly match the collection name used in ingest (defaults to "langchain")
@@ -69,42 +73,42 @@ def chat(question, context=None, context_file=None):
             # DEBUG: Check if collection has documents
             try:
                 count = db._collection.count()
-                print(f"DEBUG: ChromaDB collection has {count} documents")
+                logger.info(f"DEBUG: ChromaDB collection has {count} documents")
             except Exception as e:
-                print(f"DEBUG: Could not get collection count: {e}")
+                logger.error(f"DEBUG: Could not get collection count: {e}")
 
             # Retrieve top k documents
             docs = db.similarity_search(question, k=TOP_K)
             if docs:
                 context = "\n\n".join([d.page_content for d in docs])
-                print(f"Retrieved {len(docs)} documents.")
+                logger.info(f"Retrieved {len(docs)} documents.")
             else:
-                print("No relevant documents found in vector store.")
+                logger.info("No relevant documents found in vector store.")
                 # Debugging: maybe print all docs?
                 # print("DEBUG: All docs count:", db._collection.count()) 
         except Exception as e:
-            print(f"Error during retrieval: {e}")
+            logger.error(f"Error during retrieval: {e}")
             # fall through to check (if not context)
 
     if not context:
-        print("No context available to answer the question.")
+        logger.error("No context available to answer the question.")
         return
 
     # 2. Generate Answer
     api_key = os.getenv(GOOGLE_API_KEY_ENV)
     if not api_key:
-        print(f"❌ Error: {GOOGLE_API_KEY_ENV} not found in environment variables.")
-        print("Please set your API key in the .env file.")
+        logger.error(f"❌ Error: {GOOGLE_API_KEY_ENV} not found in environment variables.")
+        logger.error("Please set your API key in the .env file.")
         return
     
     try:
         chain = build_chain(LLM_MODEL, api_key)
         res = ask(chain, context, question)
-        print("\n--- Result ---")
-        print(res.content if hasattr(res, "content") else res) # Handle both str and AIMessage return types
-        print("--------------\n")
+                logger.info("\n--- Result ---")
+        logger.info(res.content if hasattr(res, "content") else res) # Handle both str and AIMessage return types
+        logger.info("--------------\n")
     except Exception as e:
-        print(f"❌ Generative Error: {e}")
+        logger.error(f"❌ Generative Error: {e}")
         import traceback
         traceback.print_exc()
 

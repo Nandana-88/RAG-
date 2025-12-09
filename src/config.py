@@ -13,7 +13,7 @@ CHUNK_SIZE = 600
 CHUNK_OVERLAP = 80
 
 # Retriever
-TOP_K = 5
+TOP_K = 3
 
 # config.py
 INFO_DIR = "data/info"
