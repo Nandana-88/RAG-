@@ -6,12 +6,21 @@ from dotenv import load_dotenv
 load_dotenv()
 
 # Import the chat function from main
-from src.config import PERSIST_DIR, EMBEDDING_MODEL, LLM_MODEL, GOOGLE_API_KEY_ENV, TOP_K
+from src.config import (
+    PERSIST_DIR, 
+    EMBEDDING_MODEL, 
+    LLM_MODEL, 
+    GOOGLE_API_KEY_ENV, 
+    TOP_K,
+    RERANKER_MODEL,
+    INITIAL_RETRIEVAL_K,
+    FINAL_TOP_K
+)
 
 # Page configuration
 st.set_page_config(
     page_title="University of Kerala Chatbot",
-    page_icon="🎓",
+    page_icon="assets/logo.png",  # Use the university logo
     layout="wide"
 )
 
@@ -120,11 +129,23 @@ def chat_with_rag(question, chat_history):
         db = get_vector_db()
         chain = get_rag_chain()
         
-        # Retrieve context
-        docs = db.similarity_search(question, k=TOP_K)
+        # Step 1: Retrieve more documents initially for reranking
+        initial_docs = db.similarity_search(question, k=INITIAL_RETRIEVAL_K)
+        
+        if not initial_docs:
+            return "I couldn't find relevant information in the knowledge base."
+        
+        # Step 2: Rerank the documents
+        from src.embeddings.reranker import rerank_documents
+        docs = rerank_documents(
+            query=question,
+            documents=initial_docs,
+            top_k=FINAL_TOP_K,
+            model_name=RERANKER_MODEL
+        )
         
         if not docs:
-            return "I couldn't find relevant information in the knowledge base."
+            return "I couldn't find relevant information after reranking."
         
         context = "\n\n".join([d.page_content for d in docs])
         

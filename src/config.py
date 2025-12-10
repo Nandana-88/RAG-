@@ -15,6 +15,11 @@ CHUNK_OVERLAP = 80
 # Retriever
 TOP_K = 3
 
+# Reranker
+RERANKER_MODEL = "cross-encoder/ms-marco-MiniLM-L-6-v2"
+INITIAL_RETRIEVAL_K = 15  # Retrieve more documents initially
+FINAL_TOP_K = 5  # Keep top 5 after reranking
+
 # config.py
 INFO_DIR = "data/info"
 PG_DIR = "data/pg"

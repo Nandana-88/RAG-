@@ -10,7 +10,10 @@ from src.config import (
     GOOGLE_API_KEY_ENV,
     CHUNK_SIZE,
     CHUNK_OVERLAP,
-    TOP_K
+    TOP_K,
+    RERANKER_MODEL,
+    INITIAL_RETRIEVAL_K,
+    FINAL_TOP_K
 )
 
 from src.ingestion.load_docs import load_documents
@@ -48,10 +51,15 @@ def ingest(data_path):
 
 
 def chat(question, context=None, context_file=None):
+    import logging
+    logging.basicConfig(level=logging.INFO)
+    logger = logging.getLogger(__name__)
+    
     # Lazy import of chain so ingest doesn't require langchain/llm packages
     from src.rag.chain import build_chain, ask  # <<-- lazy import
     from langchain_community.vectorstores import Chroma
     from src.embeddings.hugging_face import get_embeddings
+    from src.embeddings.reranker import rerank_documents  # Import reranker
 
     # 1. Resolve Retrieval/Context
     if context_file:
@@ -77,17 +85,32 @@ def chat(question, context=None, context_file=None):
             except Exception as e:
                 logger.error(f"DEBUG: Could not get collection count: {e}")
 
-            # Retrieve top k documents
-            docs = db.similarity_search(question, k=TOP_K)
-            if docs:
-                context = "\n\n".join([d.page_content for d in docs])
-                logger.info(f"Retrieved {len(docs)} documents.")
+            # Step 1: Retrieve more documents initially for reranking
+            logger.info(f"Retrieving top {INITIAL_RETRIEVAL_K} documents for reranking...")
+            initial_docs = db.similarity_search(question, k=INITIAL_RETRIEVAL_K)
+            
+            if initial_docs:
+                logger.info(f"Retrieved {len(initial_docs)} documents, now reranking...")
+                
+                # Step 2: Rerank the documents
+                docs = rerank_documents(
+                    query=question,
+                    documents=initial_docs,
+                    top_k=FINAL_TOP_K,
+                    model_name=RERANKER_MODEL
+                )
+                
+                if docs:
+                    context = "\n\n".join([d.page_content for d in docs])
+                    logger.info(f"Using top {len(docs)} reranked documents for context.")
+                else:
+                    logger.info("No documents after reranking.")
             else:
                 logger.info("No relevant documents found in vector store.")
-                # Debugging: maybe print all docs?
-                # print("DEBUG: All docs count:", db._collection.count()) 
         except Exception as e:
             logger.error(f"Error during retrieval: {e}")
+            import traceback
+            traceback.print_exc()
             # fall through to check (if not context)
 
     if not context:
@@ -104,7 +127,7 @@ def chat(question, context=None, context_file=None):
     try:
         chain = build_chain(LLM_MODEL, api_key)
         res = ask(chain, context, question)
-                logger.info("\n--- Result ---")
+        logger.info("\n--- Result ---")
         logger.info(res.content if hasattr(res, "content") else res) # Handle both str and AIMessage return types
         logger.info("--------------\n")
     except Exception as e:
