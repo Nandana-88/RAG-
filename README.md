@@ -1,4 +1,4 @@
-# RAG- (Retrieval‑Augmented Generation)
+# RAG- (Retrieval‑Augmented Generation): ChatBot
 
 [![Repo size](https://img.shields.io/github/repo-size/Nandana-88/RAG-?style=flat)](https://github.com/Nandana-88/RAG-)
 [![License](https://img.shields.io/github/license/Nandana-88/RAG-?style=flat)](./LICENSE)
