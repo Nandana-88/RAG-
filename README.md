@@ -10,17 +10,9 @@ This README is intentionally implementation-agnostic. Adapt commands and paths t
 
 Table of contents
 - [Why RAG?](#why-rag)
-- [Features](#features)
 - [Repository layout](#repository-layout)
 - [Requirements](#requirements)
 - [Installation](#installation)
-- [Quickstart](#quickstart)
-- [Configuration](#configuration)
-- [Usage examples](#usage-examples)
-- [Development & testing](#development--testing)
-- [Contributing](#contributing)
-- [License](#license)
-- [Contact](#contact)
 
 Why RAG?
 ---------
@@ -29,13 +21,7 @@ RAG augments generative models with a retrieval step so answers are grounded in 
 - Knowledge‑grounded chat assistants
 - Summarization with source attribution
 
-Features
---------
-- Pluggable retriever interfaces: sparse (BM25) or dense (vector embeddings)
-- Simple pipeline to combine top‑k retrieved passages with a generator
-- Config‑driven runs (YAML/JSON)
-- Example scripts for indexing and running demos
-- Utilities for evaluation (recall@k, exact match, ROUGE, etc.)
+
 
 Repository layout
 -----------------
